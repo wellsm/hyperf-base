@@ -1,0 +1,62 @@
+version: "3.8"
+
+networks:
+  default:
+    name: app
+
+volumes:
+  app-mysql-data:
+    driver: local
+  
+  app-redis-data:
+    driver: local
+
+services:
+  app-nginx:
+    build: ./docker/nginx
+    container_name: app-nginx
+    ports:
+      - 2000:80
+    depends_on:
+      - app-php
+
+  app-php:
+    build: ./docker/php
+    container_name: app-php
+    working_dir: /var/www/app
+    command: sh -c "composer install && php bin/hyperf.php key:generate && composer watch"
+    volumes:
+      - ./:/var/www/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - app-mysql
+      - app-redis
+      - app-mailcatcher
+
+  app-mysql:
+    build: ./docker/mysql
+    container_name: app-mysql
+    volumes:
+      - app-mysql-data:/var/lib/mysql
+    ports:
+      - "2001:3306"
+    environment:
+      - "MYSQL_DATABASE=app"
+      - "MYSQL_ROOT_PASSWORD=root"
+
+  app-redis:
+    image: redis:alpine
+    command: redis-server
+    container_name: app-redis
+    volumes:
+      - app-redis-data:/data
+    ports:
+      - 2002:6379
+
+  app-mailcatcher:
+    image: dockage/mailcatcher:0.8.2
+    container_name: app-mailcatcher
+    ports:
+      - "2003:1080"
+      - "2004:1025"

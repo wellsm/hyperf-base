@@ -1,0 +1,200 @@
+openapi: 3.0.3
+info:
+  title: App
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /auth:
+    post:
+      tags:
+        - Users
+      summary: Authenticate an User
+      description: Authenticate an user and return JWT
+      operationId: authUser
+      requestBody:
+        description: Authentication Request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBodies/UserAuthRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/AuthResource'
+        '404':
+          $ref: '#/components/responses/NotFoundResource'
+
+  /token/refresh:
+    post:
+      tags:
+        - Token
+      summary: Refresh Token
+      description: Refresh user token and return new JWT
+      operationId: refreshToken
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/AuthResource'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResource'
+        '403':
+          $ref: '#/components/responses/ForbiddenResource'
+        '404':
+          $ref: '#/components/responses/NotFoundResource'
+      security:
+        - JWT: []
+
+  /me:
+    get:
+      tags:
+        - Users
+      summary: Get Authenticated User
+      description: Show Authenticated User
+      operationId: showCurrentUser
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResource'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResource'
+        '403':
+          $ref: '#/components/responses/ForbiddenResource'
+        '404':
+          $ref: '#/components/responses/NotFoundResource'
+      security:
+        - JWT: []
+
+  /password:
+    post:
+      tags:
+        - Passwords
+      summary: Set Password
+      description: Set new Password
+      parameters:
+        - in: query
+          name: token
+          schema:
+            type: string
+            example: '123456'
+          required: true
+      requestBody:
+        description: Set Password Request
+        required: true
+        content:
+          application/json:
+            schema:
+             $ref: '#/components/requestBodies/PasswordSetRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedResource'
+        '404':
+          $ref: '#/components/responses/NotFoundResource'
+        '422':
+          $ref: '#/components/responses/ValidationResource'
+
+components:
+  requestBodies:
+    UserAuthRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'email@app.com'
+        password:
+          type: string
+          format: password
+          example: 'P4$$w0rd'
+          writeOnly: true
+
+    PasswordSetRequest:
+      type: object
+      required:
+        - password
+        - password_confirmation
+      properties:
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+  
+  responses:
+    CreatedResource:
+      description: Resource Created
+
+    ForbiddenResource:
+      description: Forbidden
+
+    UnauthorizedResource:
+      description: Unauthorized
+
+    NoContentResource:
+      description: No Content
+
+    NotFoundResource:
+      description: Resource (Page, URL) not found
+
+    ValidationResource:
+      description: Validation Errors
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                default: 422
+              errors:
+                type: object
+                example:
+                  example: 
+                    - "O campo exemplo precisa ser válido"
+
+    AuthResource:
+      type: object
+      properties:
+        type:
+          type: string
+          default: "Bearer"
+        token:
+          type: string
+
+    UserResource:
+      description: Successful operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1
+        name:
+          type: string
+          example: App
+        email:
+          type: string
+          example: email@app.com
+  
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
